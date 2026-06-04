@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>专业吉他调音器 | 高精度实时调音助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* 避免移动端长按菜单，提升体验 */
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a2a2f 0%, #0e1a1f 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, 'SF Pro Text', 'Roboto', sans-serif;
+            padding: 16px;
+        }
+
+        /* 主卡片容器 */
+        .tuner-card {
+            background: rgba(22, 32, 28, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 64px 64px 56px 56px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            padding: 24px 20px 36px;
+            width: 100%;
+            max-width: 520px;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(232, 195, 95, 0.25);
+        }
+
+        /* 头部标题区 */
+        .title-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: 1.85rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #FFE6B0, #D4AF37);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .guitar-icon {
+            font-size: 1.9rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        .sub {
+            font-size: 0.75rem;
+            color: #b9cfc7;
+            letter-spacing: 1px;
+            margin-top: 6px;
+            opacity: 0.8;
+        }
+
+        /* 核心显示区：音名 + 频率 */
+        .pitch-container {
+            background: #00000055;
+            border-radius: 48px;
+            padding: 20px 12px;
+            margin-bottom: 28px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2);
+        }
+        .note-name {
+            font-size: 5.5rem;
+            font-weight: 800;
+            text-align: center;
+            color: #F5E7B2;
+            text-shadow: 0 4px 12px #B27D40;
+            letter-spacing: 6px;
+            line-height: 1.1;
+            font-family: 'Monaco', 'SF Mono', monospace;
+        }
+        .frequency {
+            text-align: center;
+            font-size: 1.35rem;
+            font-weight: 500;
+            color: #cddde0;
+            margin-top: 12px;
+            letter-spacing: 0.5px;
+        }
+        .frequency span {
+            color: #F7C873;
+            font-weight: 700;
+            font-size: 1.55rem;
+        }
+
+        /* 指针表盘 (模拟调音偏离指示器) */
+        .meter-area {
+            margin: 20px 0 28px;
+        }
+        .meter-label {
+            display: flex;
+            justify-content: space-between;
+            color: #94aca3;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            padding: 0 12px;
+        }
+        .meter-track {
+            background: #1e2d2b;
+            border-radius: 40px;
+            height: 12px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: inset 0 1px 4px #00000055;
+            position: relative;
+        }
+        .meter-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3bc9a0, #ffd966, #e68a2e);
+            border-radius: 40px;
+            transition: width 0.08s linear;
+            box-shadow: 0 0 6px #ffd58c;
+        }
+        .meter-pointer {
+            position: relative;
+            margin-top: 10px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+        }
+        .pointer-needle {
+            width: 4px;
+            height: 28px;
+            background: #FFD966;
+            border-radius: 4px;
+            box-shadow: 0 0 6px #FFB347;
+            transition: transform 0.05s ease-out;
+            transform-origin: center bottom;
+        }
+        .cents-value {
+            text-align: center;
+            font-weight: 600;
+            margin-top: 8px;
+            background: #00000044;
+            display: inline-block;
+            width: auto;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 4px 16px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            color: #ffe2a4;
+        }
+
+        /* 吉他弦指示区 */
+        .strings-panel {
+            background: #1f2f2bb3;
+            border-radius: 60px;
+            padding: 16px 12px;
+            margin: 24px 0 18px;
+        }
+        .strings-title {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #b7cfc2;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+        .strings-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-evenly;
+            gap: 10px;
+        }
+        .string-btn {
+            background: #2f423bb3;
+            border-radius: 60px;
+            padding: 8px 16px;
+            min-width: 70px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.1s linear;
+            border: 1px solid #5a7c6e;
+            backdrop-filter: blur(4px);
+        }
+        .string-btn.active {
+            background: #D4AF37;
+            border-color: #FFEC9F;
+            box-shadow: 0 0 12px #ffd966;
+        }
+        .string-btn.active .string-name {
+            color: #1e2a24;
+            font-weight: 800;
+        }
+        .string-btn.active .string-note {
+            color: #1e2a24;
+            font-weight: 700;
+        }
+        .string-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #FFE5A3;
+        }
+        .string-note {
+            font-size: 0.7rem;
+            color: #bde0d0;
+        }
+
+        /* 控制按钮和状态 */
+        .permission-status {
+            background: #00000066;
+            border-radius: 60px;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #f0e2b6;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-reset {
+            background: #D4AF37;
+            border: none;
+            border-radius: 40px;
+            padding: 6px 18px;
+            font-weight: bold;
+            color: #1e2c26;
+            cursor: pointer;
+            transition: 0.15s;
+            font-size: 0.75rem;
+        }
+        .btn-reset:active {
+            transform: scale(0.96);
+            background: #B48C2C;
+        }
+        .led {
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background-color: #5a8f7a;
+            display: inline-block;
+            box-shadow: 0 0 3px;
+        }
+        .led.active {
+            background-color: #3eff9e;
+            box-shadow: 0 0 8px #7effb0;
+        }
+        .warning-text {
+            color: #ffbc6e;
+            font-size: 0.7rem;
+        }
+
+        button {
+            background: none;
+            border: none;
+        }
+
+        @media (max-width: 480px) {
+            .tuner-card {
+                padding: 20px 16px 28px;
+            }
+            .note-name {
+                font-size: 3.8rem;
+            }
+            .string-btn {
+                padding: 6px 10px;
+                min-width: 58px;
+            }
+            .string-name {
+                font-size: 1rem;
+            }
+        }
+        footer {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #7f9b8f;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="tuner-card">
+    <div class="title-section">
+        <h1>
+            <span class="guitar-icon">🎸</span> 吉他调音器
+        </h1>
+        <div class="sub">高精度 · 实时音高检测</div>
+    </div>
+
+    <!-- 当前音高信息 -->
+    <div class="pitch-container">
+        <div class="note-name" id="detectedNote">--</div>
+        <div class="frequency">
+            <span id="detectedFreq">0.00</span> Hz
+        </div>
+    </div>
+
+    <!-- 调音指示表 -->
+    <div class="meter-area">
+        <div class="meter-label">
+            <span>♭ 偏低</span>
+            <span>✔ 标准音</span>
+            <span>♯ 偏高</span>
+        </div>
+        <div class="meter-track">
+            <div class="meter-fill" id="meterFill"></div>
+        </div>
+        <div class="meter-pointer">
+            <div class="pointer-needle" id="needlePointer"></div>
+        </div>
+        <div class="cents-value" id="centsDisplay">±0 音分</div>
+    </div>
+
+    <!-- 吉他弦快速参考 + 参考音 (点击试听A4) -->
+    <div class="strings-panel">
+        <div class="strings-title">📌 标准吉他弦参考 (点击弦可播放参考音)</div>
+        <div class="strings-grid" id="stringsGrid">
+            <!-- 动态JS生成6根弦, 也可以用静态但为了维护方便用js动态 -->
+        </div>
+        <div class="permission-status" id="micStatusBar">
+            <span class="led" id="micLed"></span>
+            <span id="statusText">请求麦克风权限...</span>
+            <button class="btn-reset" id="requestMicBtn">🎙️ 开启麦克风</button>
+        </div>
+        <div class="warning-text" id="accuracyNote">💡 提示: 环境安静时准确度最高，弹奏单音调弦</div>
+    </div>
+    <footer>基于Web Audio API | 自动连续分析音高</footer>
+</div>
+
+<script>
+    (function(){
+        // ----- 吉他标准弦配置 (频率单位Hz, 音名, 显示)
+        const GUITAR_STRINGS = [
+            { name: "6弦 (E)", note: "E2", freq: 82.41, pitchClass: "E", octave: 2 },
+            { name: "5弦 (A)", note: "A2", freq: 110.00, pitchClass: "A", octave: 2 },
+            { name: "4弦 (D)", note: "D3", freq: 146.83, pitchClass: "D", octave: 3 },
+            { name: "3弦 (G)", note: "G3", freq: 196.00, pitchClass: "G", octave: 3 },
+            { name: "2弦 (B)", note: "B3", freq: 246.94, pitchClass: "B", octave: 3 },
+            { name: "1弦 (E)", note: "E4", freq: 329.63, pitchClass: "E", octave: 4 }
+        ];
+
+        // 音名到半音数的映射 (用于最近音名查找)
+        const NOTE_SEMITONE_MAP = {
+            "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3,
+            "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8,
+            "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11
+        };
+        const SEMITONE_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+        // 将频率转成最近音名 + 偏移音分 (A4=440Hz)
+        const A4_REF = 440.0;
+        function getNoteFromFrequency(freq) {
+            if (freq <= 0 || !isFinite(freq)) return { noteName: "--", cents: 0, refFreq: 0, pitchClass: "", octave: 0 };
+            // 基于对数计算半音距离: 12 * log2(f / A4) + 69 (A4 对应MIDI 69)
+            let midi = 12 * Math.log2(freq / A4_REF) + 69;
+            let midiRounded = Math.round(midi);
+            // 避免极端值
+            if (midi < 0 || midi > 127) return { noteName: "--", cents: 0, refFreq: 0, pitchClass: "", octave: 0 };
+            let octave = Math.floor(midi / 12) - 1;
+            let semitoneIndex = (midiRounded % 12 + 12) % 12;
+            let noteClass = SEMITONE_NOTES[semitoneIndex];
+            // 计算精确偏移音分: 每个半音100音分, 实际精确理论频率
+            let exactMidi = 12 * Math.log2(freq / A4_REF) + 69;
+            let centsOffset = (exactMidi - midiRounded) * 100;
+            // 获取参考频率 (该标准音名的理论频率)
+            let refMidi = midiRounded;
+            let refFreq = A4_REF * Math.pow(2, (refMidi - 69) / 12);
+            // 处理显示时若 cents 接近整数边界优化显示
+            if (Math.abs(centsOffset) > 50) {
+                // 极少数边界情况可以微调，但保留用于指针指示完全足够
+            }
+            return {
+                noteName: noteClass + octave,
+                cents: centsOffset,
+                refFreq: refFreq,
+                pitchClass: noteClass,
+                octave: octave,
+                rawMidi: exactMidi
+            };
+        }
+
+        // DOM 元素
+        const detectedNoteSpan = document.getElementById("detectedNote");
+        const detectedFreqSpan = document.getElementById("detectedFreq");
+        const meterFill = document.getElementById("meterFill");
+        const needlePointer = document.getElementById("needlePointer");
+        const centsDisplaySpan = document.getElementById("centsDisplay");
+        const stringsGrid = document.getElementById("stringsGrid");
+        const micLed = document.getElementById("micLed");
+        const statusTextSpan = document.getElementById("statusText");
+        const requestMicBtn = document.getElementById("requestMicBtn");
+
+        // 音频上下文相关变量
+        let audioContext = null;
+        let mediaStream = null;
+        let sourceNode = null;
+        let analyserNode = null;
+        let animationId = null;
+        let isMicActive = false;
+
+        // 当前实时频率 (用于显示)
+        let currentFrequency = 0;
+        let currentNoteData = { noteName: "--", cents: 0, refFreq: 0 };
+
+        // 自相关 + 平滑 + 音高检测算法 (基于YIN算法简化版 + 缓冲自相关)
+        // 为提高真实性和稳定性, 使用自相关峰值检测
+        let pitchDetector = {
+            // 获取缓冲区数据并估计频率
+            getPitch: function(buffer, sampleRate) {
+                let size = buffer.length;
+                if (size < 256) return -1;
+                // 自相关函数
+                let correlations = new Array(size/2);
+                let maxCorr = 0;
+                let tau = 0;
+                // 计算自相关 范围从 minLag 到 maxLag (覆盖吉他最低音E2约82Hz到最高E4~330Hz)
+                let minLag = Math.floor(sampleRate / 500); // 最高约500Hz以上保险
+                let maxLag = Math.floor(sampleRate / 70);   // 最低音 70Hz以下E2 82Hz左右
+                if (maxLag > size/2) maxLag = size/2;
+                // 归一化差分函数 (简化YIN风格)
+                for (let lag = minLag; lag < maxLag; lag++) {
+                    let sum = 0;
+                    for (let i = 0; i < maxLag; i++) {
+                        let diff = buffer[i] - buffer[i+lag];
+                        sum += diff * diff;
+                    }
+                    let corr = 1 - (sum / (maxLag));
+                    if (corr > maxCorr) {
+                        maxCorr = corr;
+                        tau = lag;
+                    }
+                }
+                // 峰值插值微调 (抛物线插值提高精度)
+                if (tau <= minLag) return -1;
+                let tauFloat = tau;
+                if (tau > minLag+1 && tau < maxLag-1) {
+                    let s0 = 0, s1 = 0, s2 = 0;
+                    // 利用自相关强度进一步插值
+                    let getCorrVal = (lag) => {
+                        let sum = 0;
+                        for (let i = 0; i < maxLag; i++) {
+                            let diff = buffer[i] - buffer[i+lag];
+                            sum += diff * diff;
+                        }
+                        return 1 - (sum / (maxLag));
+                    };
+                    let c1 = getCorrVal(tau-1);
+                    let c2 = getCorrVal(tau);
+                    let c3 = getCorrVal(tau+1);
+                    let denom = (c1 - 2*c2 + c3);
+                    if (denom !== 0) {
+                        let delta = 0.5 * (c1 - c3) / denom;
+                        tauFloat = tau + delta;
+                    }
+                }
+                let pitch = sampleRate / tauFloat;
+                // 限制范围吉他常用60Hz~500Hz之间
+                if (pitch > 65 && pitch < 550) return pitch;
+                else if (pitch >= 50 && pitch <= 65) return pitch; // 低于E2可能极低，但限制
+                else return -1;
+            }
+        };
+
+        // 实时分析循环
+        function updatePitchLoop() {
+            if (!isMicActive || !analyserNode || !audioContext) {
+                if (animationId) cancelAnimationFrame(animationId);
+                animationId = null;
+                return;
+            }
+            const bufferLength = analyserNode.fftSize;
+            const dataArray = new Float32Array(bufferLength);
+            analyserNode.getFloatTimeDomainData(dataArray);
+            let sampleRate = audioContext.sampleRate;
+            let detectedPitch = pitchDetector.getPitch(dataArray, sampleRate);
+            if (detectedPitch > 0) {
+                // 平滑处理: 与上次频率做低通滤波避免抖动
+                if (currentFrequency <= 0) currentFrequency = detectedPitch;
+                else currentFrequency = currentFrequency * 0.7 + detectedPitch * 0.3;
+                // 限制显示合理性
+                if (currentFrequency < 50) currentFrequency = 50;
+                if (currentFrequency > 550) currentFrequency = 550;
+                // 更新显示
+                detectedFreqSpan.innerText = currentFrequency.toFixed(2);
+                // 计算音符
+                let noteInfo = getNoteFromFrequency(currentFrequency);
+                currentNoteData = noteInfo;
+                detectedNoteSpan.innerText = noteInfo.noteName !== "--" ? noteInfo.noteName : "---";
+                // 更新表盘和指针 (基于音分偏移)
+                let cents = noteInfo.cents;
+                if (!isFinite(cents)) cents = 0;
+                // 限制显示范围 -50 到 +50 音分
+                let boundedCents = Math.min(50, Math.max(-50, cents));
+                let percent = (boundedCents + 50) / 100; // 0~1 之间  -50->0%  0->50%  50->100%
+                let fillWidth = percent * 100;
+                meterFill.style.width = fillWidth + "%";
+                // 指针偏移：范围-25deg 到 +25deg (对应偏移量)
+                let angle = (boundedCents / 50) * 25; // -25deg ~ +25deg
+                needlePointer.style.transform = `rotate(${angle}deg)`;
+                let centsAbs = cents > 0 ? `+${cents.toFixed(1)}` : `${cents.toFixed(1)}`;
+                centsDisplaySpan.innerText = `${centsAbs} 音分  ${Math.abs(cents) < 3 ? '✓ 精准' : (cents>0 ? '偏高 ↑' : '偏低 ↓')}`;
+                // 高亮对应参考弦 (根据最近音符匹配对应的弦, 给予视觉提示)
+                highlightClosestString(noteInfo);
+            } else {
+                // 无有效音高时复位但保留上次显示但不要过大误导，重置指针中心
+                if (currentFrequency !== 0) {
+                    // 不清零显示更好，复位指针到中性
+                    meterFill.style.width = "50%";
+                    needlePointer.style.transform = `rotate(0deg)`;
+                    centsDisplaySpan.innerText = `-- 音分 (无稳定信号)`;
+                    detectedNoteSpan.innerText = "---";
+                }
+            }
+            animationId = requestAnimationFrame(updatePitchLoop);
+        }
+
+        // 辅助高亮最近的吉他弦 (根据检测到的音名+频率上下阈值)
+        function highlightClosestString(noteInfo) {
+            if (!noteInfo.noteName || noteInfo.noteName === "--") {
+                // 移除所有高亮
+                document.querySelectorAll('.string-btn').forEach(btn => btn.classList.remove('active'));
+                return;
+            }
+            let bestIdx = -1;
+            let minDiff = Infinity;
+            GUITAR_STRINGS.forEach((gStr, idx) => {
+                let strFreq = gStr.freq;
+                let diff = Math.abs(currentFrequency - strFreq);
+                // 同时匹配音名大致范围 (optional: 如果音符字母相同且相差小于5半音)
+                if (diff < minDiff && diff < 15) { // 15Hz宽容范围，确保正确性
+                    minDiff = diff;
+                    bestIdx = idx;
+                }
+            });
+            document.querySelectorAll('.string-btn').forEach((btn, i) => {
+                if (bestIdx === i && minDiff < 12) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        }
+
+        // 生成弦按钮列表
+        function buildStringsUI() {
+            stringsGrid.innerHTML = "";
+            GUITAR_STRINGS.forEach((str, idx) => {
+                const btn = document.createElement('div');
+                btn.className = 'string-btn';
+                btn.innerHTML = `<div class="string-name">${str.name}</div><div class="string-note">${str.note} (${str.freq}Hz)</div>`;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playReferenceTone(str.freq, 1.2);
+                    // 临时高亮提示点击弦
+                    document.querySelectorAll('.string-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    setTimeout(() => {
+                        if (currentFrequency > 0) {
+                            // 不要立即移除高亮, 让调音高亮覆盖
+                        } else {
+                            // 三秒后恢复
+                        }
+                    }, 800);
+                });
+                stringsGrid.appendChild(btn);
+            });
+        }
+
+        // 播放参考音 (使用振荡器)
+        let activeOsc = null;
+        function playReferenceTone(freq, durationSec = 1.2) {
+            if (!audioContext) {
+                // 尝试初始化上下文但还未激活, 先请求音频权限或等待
+                initAudioContext().then(() => {
+                    playToneInternal(freq, durationSec);
+                }).catch(e=> console.warn);
+            } else {
+                playToneInternal(freq, durationSec);
+            }
+        }
+        function playToneInternal(freq, duration) {
+            if (!audioContext) return;
+            // 确保AudioContext是resume状态
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(()=>{
+                    generateTone(freq, duration);
+                }).catch(e=>console.log);
+            } else {
+                generateTone(freq, duration);
+            }
+        }
+        function generateTone(freq, duration) {
+            if (activeOsc) {
+                try { activeOsc.stop(); } catch(e) {}
+            }
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.value = 0.25;
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration);
+            osc.stop(audioContext.currentTime + duration);
+            activeOsc = osc;
+            osc.onended = () => { if(activeOsc === osc) activeOsc = null; };
+        }
+
+        // 初始化麦克风 & 音频分析
+        async function initAudioContext() {
+            if (audioContext && audioContext.state !== 'closed') {
+                if (audioContext.state === 'suspended') await audioContext.resume();
+                return true;
+            }
+            // 创建 AudioContext (chrome 要求用户手势后启动)
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            return true;
+        }
+
+        async function startMicrophone() {
+            try {
+                if (mediaStream) {
+                    stopMicrophone();
+                }
+                await initAudioContext();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                mediaStream = stream;
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                // 断开之前的节点
+                if (sourceNode) {
+                    try { sourceNode.disconnect(); } catch(e){}
+                }
+                sourceNode = audioContext.createMediaStreamSource(stream);
+                analyserNode = audioContext.createAnalyser();
+                analyserNode.fftSize = 2048;
+                analyserNode.smoothingTimeConstant = 0.4;
+                sourceNode.connect(analyserNode);
+                isMicActive = true;
+                micLed.classList.add('active');
+                statusTextSpan.innerText = "🎤 麦克风工作中 | 弹奏单音调弦";
+                if (animationId) cancelAnimationFrame(animationId);
+                animationId = requestAnimationFrame(updatePitchLoop);
+            } catch (err) {
+                console.error(err);
+                isMicActive = false;
+                micLed.classList.remove('active');
+                statusTextSpan.innerText = "❌ 无法获取麦克风权限，请点击允许并重试";
+                alert("需要麦克风权限才能使用调音器，请授予权限并刷新重试或点击按钮重试。");
+            }
+        }
+
+        function stopMicrophone() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            if (sourceNode) {
+                try { sourceNode.disconnect(); } catch(e){}
+                sourceNode = null;
+            }
+            isMicActive = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            micLed.classList.remove('active');
+            statusTextSpan.innerText = "⏹️ 麦克风已关闭，点击开启调音";
+        }
+
+        // 重新请求麦克风
+        requestMicBtn.addEventListener('click', () => {
+            if (isMicActive) {
+                stopMicrophone();
+                startMicrophone();
+            } else {
+                startMicrophone();
+            }
+        });
+
+        // 页面加载构建UI并尝试自动请求 (用户手势: 任何点击调音都会触发自动，但为了体验，页面加载后先尝试自动请求)
+        buildStringsUI();
+        // 自动请求麦克风需要在用户手势后，但由于浏览器策略，首次调用静默请求会在用户点击页面区域自动触发调用。但可以加一个总体触摸启动
+        function autoInit() {
+            startMicrophone().catch(e=>{
+                statusTextSpan.innerText = "👉 点击🎙️按钮以启用调音器";
+            });
+        }
+        // 由于严格策略，添加一个首次点击卡片区域也行, 但按钮明显，用户可以主动点击。但是为了自动流利，首次触摸任意区域尝试启动
+        const warmup = ()=>{
+            if (!isMicActive && !mediaStream) {
+                startMicrophone().catch(()=>{});
+            }
+            document.body.removeEventListener('touchstart', warmup);
+            document.body.removeEventListener('click', warmup);
+        };
+        document.body.addEventListener('touchstart', warmup, { once: true });
+        document.body.addEventListener('click', warmup, { once: true });
+        // 显示初始状态
+        statusTextSpan.innerText = "🎸 点击任意位置或按钮启动调音器";
+        // 额外: 确保页面关闭时释放资源
+        window.addEventListener('beforeunload', ()=>{
+            if (mediaStream) stopMicrophone();
+            if (audioContext) audioContext.close();
+        });
+    })();
+</script>
+</body>
+</html>
